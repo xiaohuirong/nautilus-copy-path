@@ -5,6 +5,7 @@ from urllib.parse import urlparse, unquote
 from translation import Translation
 from gi import require_version
 import gi
+import subprocess
 
 require_version('Gtk', '4.0')
 from gi.repository import Nautilus, GObject, Gtk, Gdk, GLib
@@ -134,7 +135,7 @@ class NautilusCopyPath(GObject.Object, Nautilus.MenuProvider):
             filtered_files = []
             for file in files:
                 file_type = file.get_mime_type()
-                if file_type in self.allow_copy_content or file_type.startswith("text/"):
+                if file_type in self.allow_copy_content or file_type.startswith("text/") or file_type.startswith("image/"):
                     filtered_files.append(file)
 
             if len(filtered_files) > 0:
@@ -171,7 +172,12 @@ class NautilusCopyPath(GObject.Object, Nautilus.MenuProvider):
         content = []
         for file in files:
             file_type = file.get_mime_type()
-            if file_type in self.allow_copy_content or file_type.startswith("text/"):
+            if file_type.startswith("image/"):
+                p = urlparse(file.get_activation_uri())
+                p = os.path.abspath(os.path.join(p.netloc, unquote(p.path)))
+                with open(p, 'rb') as img_file:
+                    subprocess.run(['wl-copy'], stdin=img_file)
+            elif file_type in self.allow_copy_content or file_type.startswith("text/"):
                 p = urlparse(file.get_activation_uri())
                 p = os.path.abspath(os.path.join(p.netloc, unquote(p.path)))
                 with open(p, 'r') as _file:
